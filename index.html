@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Briefing do Site</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F6F1EA; --card:#FFFDF9; --ink:#2A2320; --muted:#7A6E66; --line:#E4DAD0;
+    --accent:#B5563A; --accent-ink:#fff; --accent-soft:#F4E4DC; --erro:#B3261E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "DM Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:40px 16px 80px}
+  header .eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font:600 clamp(30px,6vw,42px)/1.1 "Fraunces",Georgia,serif;margin:8px 0 12px;letter-spacing:-.01em}
+  header p{color:var(--muted);margin:0 0 28px;max-width:560px}
+
+  .progress{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 14px}
+  .progress-top{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-bottom:8px}
+  .progress-top b{color:var(--ink);font-weight:600}
+  .bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .35s ease}
+
+  .step{display:none;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 22px}
+  .step.ativo{display:block;animation:entra .3s ease}
+  @keyframes entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .step h2{font:600 26px/1.2 "Fraunces",Georgia,serif;margin:0 0 4px}
+  .step > .sub{color:var(--muted);margin:0 0 26px}
+
+  .field{margin-bottom:26px;border-radius:var(--radius)}
+  .field > .lbl{display:block;font-weight:600;margin-bottom:4px}
+  .field > .lbl .req{color:var(--accent)}
+  .field > .hint{display:block;font-size:14px;color:var(--muted);margin-bottom:10px}
+  .grid2{display:grid;gap:0 16px}
+  @media(min-width:600px){.grid2{grid-template-columns:1fr 1fr}}
+
+  input[type=text],input[type=email],input[type=tel],input[type=url],textarea,select{
+    width:100%;font:inherit;color:inherit;background:#fff;border:1.5px solid var(--line);
+    border-radius:10px;padding:12px 14px;transition:border-color .15s, box-shadow .15s}
+  textarea{min-height:110px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  ::placeholder{color:#B3A79E}
+
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{position:relative;cursor:pointer}
+  .opt input{position:absolute;opacity:0;pointer-events:none}
+  .opt > span{display:inline-block;padding:9px 15px;border:1.5px solid var(--line);border-radius:99px;background:#fff;font-size:15px;transition:all .15s;user-select:none}
+  .opt:hover > span{border-color:#CDBFB3}
+  .opt input:checked + span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .opt input:focus-visible + span{box-shadow:0 0 0 3px var(--accent-soft);border-color:var(--accent)}
+
+  .cards{display:grid;gap:10px}
+  @media(min-width:600px){.cards{grid-template-columns:1fr 1fr}}
+  .opt-card > span{display:block;border-radius:12px;padding:12px 14px}
+  .opt-card > span b{display:block;font-weight:600}
+  .opt-card > span small{color:var(--muted);font-size:13.5px}
+  .opt-card input:checked + span small{color:rgba(255,255,255,.85)}
+
+  .reveal{margin-top:12px}
+  .reveal[hidden]{display:none}
+
+  .cores{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .cor{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .cor input[type=color]{width:56px;height:56px;border:1.5px solid var(--line);border-radius:12px;padding:3px;background:#fff;cursor:pointer}
+
+  .upload{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;
+    border:1.5px dashed #CDBFB3;border-radius:var(--radius);padding:26px 16px;background:#fff;cursor:pointer;transition:all .15s}
+  .upload:hover,.upload.arrastando{border-color:var(--accent);background:var(--accent-soft)}
+  .upload input{position:absolute;width:1px;height:1px;opacity:0}
+  .upload strong{font-weight:600}
+  .upload small{color:var(--muted);font-size:13.5px}
+  .upload svg{color:var(--accent);margin-bottom:4px}
+  .previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px;margin-top:12px}
+  .previews:empty{display:none}
+  .thumb{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--accent-soft);border:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .doc{display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;padding:6px;text-align:center;word-break:break-all;color:var(--muted)}
+  .thumb button{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(42,35,32,.8);color:#fff;font-size:15px;line-height:1;cursor:pointer}
+  .aviso-upload{font-size:13.5px;color:var(--erro);margin-top:8px}
+
+  .check-simples{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px}
+  .check-simples input{margin-top:4px;width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
+
+  .msg-erro{display:none;color:var(--erro);font-size:13.5px;margin-top:6px}
+  .field.erro .msg-erro{display:block}
+  .field.erro input[type=text],.field.erro input[type=email],.field.erro input[type=tel],.field.erro textarea{border-color:var(--erro)}
+  .field.erro .opt > span{border-color:#E3B4AF}
+
+  .nav{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+  .btn{font:600 16px "DM Sans",sans-serif;border-radius:99px;padding:13px 26px;border:1.5px solid transparent;cursor:pointer;transition:all .15s}
+  .btn-sec{background:transparent;border-color:var(--line);color:var(--ink)}
+  .btn-sec:hover{border-color:var(--ink)}
+  .btn-pri{background:var(--ink);color:#fff;margin-left:auto}
+  .btn-pri:hover{background:var(--accent)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .btn[hidden]{display:none}
+  .rascunho{font-size:13px;color:var(--muted);text-align:center;margin-top:14px}
+
+  .sucesso{display:none;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:48px 24px}
+  .sucesso.ativo{display:block}
+  .sucesso .selo{width:64px;height:64px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+  .sucesso h2{font:600 28px "Fraunces",Georgia,serif;margin:0 0 8px}
+  .sucesso p{color:var(--muted);margin:0 auto;max-width:420px}
+  .erro-envio{display:none;background:#FBEAE8;color:var(--erro);border-radius:10px;padding:12px 14px;font-size:14.5px;margin-top:16px}
+  .erro-envio.ativo{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Briefing do site</div>
+    <h1>Vamos construir o seu site</h1>
+    <p>Responda com calma — quanto mais detalhes, mais o site vai ter a sua cara. Suas respostas ficam salvas neste aparelho enquanto você preenche, então dá pra parar e voltar depois.</p>
+  </header>
+
+  <div class="progress" id="progress">
+    <div class="progress-top"><b id="etapa-nome">Sobre você</b><span id="etapa-num">Etapa 1 de 7</span></div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+
+  <form id="form" novalidate>
+
+    <!-- 1. SOBRE VOCÊ -->
+    <section class="step" data-titulo="Sobre você">
+      <h2>Sobre você</h2>
+      <p class="sub">Para eu saber com quem estou falando e como te encontrar.</p>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="lbl" for="nome">Nome completo <span class="req">*</span></label>
+          <input type="text" id="nome" name="nome" required autocomplete="name">
+          <div class="msg-erro">Preencha seu nome.</div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="negocio">Nome do negócio / marca <span class="req">*</span></label>
+          <input type="text" id="negocio" name="negocio" required>
+          <div class="msg-erro">Preencha o nome do negócio.</div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="email">E-mail <span class="req">*</span></label>
+          <input type="email" id="email" name="email" required autocomplete="email">
+          <div class="msg-erro">Informe um e-mail válido.</div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="whatsapp">WhatsApp <span class="req">*</span></label>
+          <input type="tel" id="whatsapp" name="whatsapp" required placeholder="(22) 99999-9999" autocomplete="tel">
+          <div class="msg-erro">Informe seu WhatsApp.</div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="instagram">Instagram</label>
+          <input type="text" id="instagram" name="instagram" placeholder="@seuperfil">
+        </div>
+        <div class="field">
+          <label class="lbl" for="cidade">Cidade / Estado</label>
+          <input type="text" id="cidade" name="cidade">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Melhor forma de falar com você <span class="req">*</span></span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="contato_preferido" value="WhatsApp" required><span>WhatsApp</span></label>
+          <label class="opt"><input type="radio" name="contato_preferido" value="E-mail"><span>E-mail</span></label>
+          <label class="opt"><input type="radio" name="contato_preferido" value="Ligação"><span>Ligação</span></label>
+          <label class="opt"><input type="radio" name="contato_preferido" value="Áudio"><span>Áudio</span></label>
+        </div>
+        <div class="msg-erro">Escolha uma opção.</div>
+      </div>
+    </section>
+
+    <!-- 2. O NEGÓCIO -->
+    <section class="step" data-titulo="O negócio">
+      <h2>O seu negócio</h2>
+      <p class="sub">O que você faz, para quem e o que te torna diferente.</p>
+
+      <div class="field">
+        <span class="lbl">Área de atuação <span class="req">*</span></span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="area" value="Saúde e bem-estar" required><span>Saúde e bem-estar</span></label>
+          <label class="opt"><input type="radio" name="area" value="Beleza e estética"><span>Beleza e estética</span></label>
+          <label class="opt"><input type="radio" name="area" value="Educação"><span>Educação</span></label>
+          <label class="opt"><input type="radio" name="area" value="Alimentação"><span>Alimentação</span></label>
+          <label class="opt"><input type="radio" name="area" value="Moda e acessórios"><span>Moda e acessórios</span></label>
+          <label class="opt"><input type="radio" name="area" value="Serviços profissionais"><span>Serviços profissionais</span></label>
+          <label class="opt"><input type="radio" name="area" value="Loja / produtos"><span>Loja / produtos</span></label>
+          <label class="opt"><input type="radio" name="area" value="Arte e criatividade"><span>Arte e criatividade</span></label>
+          <label class="opt"><input type="radio" name="area" value="Outra"><span>Outra</span></label>
+        </div>
+        <div class="reveal" data-when="area=Outra" hidden>
+          <input type="text" name="area_outra" placeholder="Qual?">
+        </div>
+        <div class="msg-erro">Escolha uma opção.</div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="descricao">Em poucas palavras, o que você faz? <span class="req">*</span></label>
+        <span class="hint">Como você explicaria para alguém que acabou de conhecer.</span>
+        <textarea id="descricao" name="descricao" required></textarea>
+        <div class="msg-erro">Conte um pouco sobre o que você faz.</div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="servicos">Principais serviços ou produtos</label>
+        <span class="hint">Liste o que você oferece. Se tiver preços ou pacotes que podem aparecer no site, coloque também.</span>
+        <textarea id="servicos" name="servicos"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="diferencial">O que te diferencia de outros profissionais da sua área?</label>
+        <textarea id="diferencial" name="diferencial"></textarea>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Há quanto tempo o negócio existe?</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="tempo_negocio" value="Ainda vou começar"><span>Ainda vou começar</span></label>
+          <label class="opt"><input type="radio" name="tempo_negocio" value="Menos de 1 ano"><span>Menos de 1 ano</span></label>
+          <label class="opt"><input type="radio" name="tempo_negocio" value="1 a 3 anos"><span>1 a 3 anos</span></label>
+          <label class="opt"><input type="radio" name="tempo_negocio" value="3 a 5 anos"><span>3 a 5 anos</span></label>
+          <label class="opt"><input type="radio" name="tempo_negocio" value="Mais de 5 anos"><span>Mais de 5 anos</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Como você atende?</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="atendimento" value="Presencial"><span>Presencial</span></label>
+          <label class="opt"><input type="radio" name="atendimento" value="Online"><span>Online</span></label>
+          <label class="opt"><input type="radio" name="atendimento" value="Presencial e online"><span>Presencial e online</span></label>
+          <label class="opt"><input type="radio" name="atendimento" value="Entrega / envio"><span>Entrega / envio</span></label>
+        </div>
+        <div class="reveal" data-when="atendimento=Presencial|atendimento=Presencial e online" hidden>
+          <input type="text" name="endereco" placeholder="Endereço que pode aparecer no site (opcional)">
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PÚBLICO E OBJETIVOS -->
+    <section class="step" data-titulo="Público e objetivos">
+      <h2>Público e objetivos</h2>
+      <p class="sub">Para quem é o site e o que ele precisa fazer por você.</p>
+
+      <div class="field">
+        <label class="lbl" for="publico">Quem é o seu cliente ideal? <span class="req">*</span></label>
+        <span class="hint">Idade, profissão, o que ele(a) busca, que problema você resolve.</span>
+        <textarea id="publico" name="publico" required></textarea>
+        <div class="msg-erro">Descreva seu público.</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Faixa etária do público</span>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="faixa_etaria" value="Até 17"><span>Até 17</span></label>
+          <label class="opt"><input type="checkbox" name="faixa_etaria" value="18–24"><span>18–24</span></label>
+          <label class="opt"><input type="checkbox" name="faixa_etaria" value="25–34"><span>25–34</span></label>
+          <label class="opt"><input type="checkbox" name="faixa_etaria" value="35–44"><span>35–44</span></label>
+          <label class="opt"><input type="checkbox" name="faixa_etaria" value="45–59"><span>45–59</span></label>
+          <label class="opt"><input type="checkbox" name="faixa_etaria" value="60+"><span>60+</span></label>
+        </div>
+      </div>
+
+      <div class="field" data-required-group>
+        <span class="lbl">Para que você quer o site? <span class="req">*</span></span>
+        <span class="hint">Marque quantos quiser.</span>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="objetivos" value="Atrair novos clientes"><span>Atrair novos clientes</span></label>
+          <label class="opt"><input type="checkbox" name="objetivos" value="Passar mais credibilidade"><span>Passar mais credibilidade</span></label>
+          <label class="opt"><input type="checkbox" name="objetivos" value="Vender online"><span>Vender online</span></label>
+          <label class="opt"><input type="checkbox" name="objetivos" value="Receber agendamentos"><span>Receber agendamentos</span></label>
+          <label class="opt"><input type="checkbox" name="objetivos" value="Mostrar portfólio"><span>Mostrar portfólio</span></label>
+          <label class="opt"><input type="checkbox" name="objetivos" value="Publicar conteúdo"><span>Publicar conteúdo</span></label>
+          <label class="opt"><input type="checkbox" name="objetivos" value="Captar contatos (leads)"><span>Captar contatos</span></label>
+        </div>
+        <div class="msg-erro">Marque pelo menos um objetivo.</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Qual a ação mais importante que o visitante deve fazer? <span class="req">*</span></span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="acao_principal" value="Chamar no WhatsApp" required><span>Chamar no WhatsApp</span></label>
+          <label class="opt"><input type="radio" name="acao_principal" value="Agendar um horário"><span>Agendar um horário</span></label>
+          <label class="opt"><input type="radio" name="acao_principal" value="Comprar"><span>Comprar</span></label>
+          <label class="opt"><input type="radio" name="acao_principal" value="Preencher um formulário"><span>Preencher um formulário</span></label>
+          <label class="opt"><input type="radio" name="acao_principal" value="Seguir no Instagram"><span>Seguir no Instagram</span></label>
+        </div>
+        <div class="msg-erro">Escolha uma opção.</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Você já tem site?</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="tem_site" value="Não"><span>Não</span></label>
+          <label class="opt"><input type="radio" name="tem_site" value="Sim"><span>Sim</span></label>
+        </div>
+        <div class="reveal" data-when="tem_site=Sim" hidden>
+          <input type="text" name="site_atual" placeholder="Link do site atual e o que você não gosta nele">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="concorrentes">Concorrentes ou profissionais que você admira</label>
+        <span class="hint">Nomes, perfis ou sites. Ajuda a entender o mercado.</span>
+        <textarea id="concorrentes" name="concorrentes"></textarea>
+      </div>
+    </section>
+
+    <!-- 4. IDENTIDADE VISUAL -->
+    <section class="step" data-titulo="Identidade visual">
+      <h2>Identidade visual</h2>
+      <p class="sub">Cores, estilo e a sensação que o site deve passar.</p>
+
+      <div class="field">
+        <span class="lbl">Você tem logo? <span class="req">*</span></span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="tem_logo" value="Sim" required><span>Sim</span></label>
+          <label class="opt"><input type="radio" name="tem_logo" value="Tenho, mas quero refazer"><span>Tenho, mas quero refazer</span></label>
+          <label class="opt"><input type="radio" name="tem_logo" value="Não tenho"><span>Não tenho</span></label>
+        </div>
+        <div class="msg-erro">Escolha uma opção.</div>
+        <div class="reveal" data-when="tem_logo=Sim|tem_logo=Tenho, mas quero refazer" hidden>
+          <label class="upload" data-campo="logo" data-max="5">
+            <input type="file" accept="image/*,.pdf,.svg" multiple>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            <strong>Envie o arquivo do logo</strong>
+            <small>PNG, SVG, JPG ou PDF · até 5 arquivos</small>
+          </label>
+          <div class="previews" data-previews="logo"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Cores da marca</span>
+        <span class="hint">Toque nos quadrados para escolher. Se não souber, marque a opção abaixo.</span>
+        <div class="cores">
+          <label class="cor"><input type="color" name="cor_1" value="#B5563A">Principal</label>
+          <label class="cor"><input type="color" name="cor_2" value="#2A2320">Secundária</label>
+          <label class="cor"><input type="color" name="cor_3" value="#F6F1EA">Fundo</label>
+        </div>
+        <label class="check-simples" style="margin-top:14px"><input type="checkbox" name="sem_cores" value="Sim"><span>Ainda não tenho cores definidas — quero sugestões</span></label>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="cores_evitar">Alguma cor que você não quer de jeito nenhum?</label>
+        <input type="text" id="cores_evitar" name="cores_evitar">
+      </div>
+
+      <div class="field" data-required-group>
+        <span class="lbl">Qual estilo combina com você? <span class="req">*</span></span>
+        <span class="hint">Escolha até três.</span>
+        <div class="cards" data-limite="3">
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Minimalista"><span><b>Minimalista</b><small>Muito espaço, pouco enfeite, direto ao ponto</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Elegante"><span><b>Elegante</b><small>Sofisticado, tons sóbrios, tipografia refinada</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Moderno"><span><b>Moderno</b><small>Ousado, contrastes fortes, visual atual</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Acolhedor"><span><b>Acolhedor</b><small>Tons quentes, próximo, humano</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Divertido"><span><b>Divertido</b><small>Colorido, leve, com personalidade</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Natural"><span><b>Natural</b><small>Orgânico, texturas, tons terrosos</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Delicado"><span><b>Delicado</b><small>Suave, feminino, detalhes finos</small></span></label>
+          <label class="opt opt-card"><input type="checkbox" name="estilo" value="Profissional"><span><b>Profissional</b><small>Sério, confiável, corporativo</small></span></label>
+        </div>
+        <div class="msg-erro">Escolha pelo menos um estilo.</div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="referencias">Sites que você acha bonitos</label>
+        <span class="hint">Cole os links e diga o que te chamou atenção em cada um. Podem ser de qualquer área.</span>
+        <textarea id="referencias" name="referencias"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="lbl">Prints ou imagens de referência</label>
+        <label class="upload" data-campo="referencias_visuais" data-max="10">
+          <input type="file" accept="image/*" multiple>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+          <strong>Envie prints de sites, posts ou paletas</strong>
+          <small>Até 10 imagens</small>
+        </label>
+        <div class="previews" data-previews="referencias_visuais"></div>
+      </div>
+    </section>
+
+    <!-- 5. PÁGINAS E FUNÇÕES -->
+    <section class="step" data-titulo="Páginas e funções">
+      <h2>Páginas e funções</h2>
+      <p class="sub">O que precisa existir no site.</p>
+
+      <div class="field" data-required-group>
+        <span class="lbl">Quais seções ou páginas você imagina? <span class="req">*</span></span>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="paginas" value="Início"><span>Início</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Sobre mim / Sobre nós"><span>Sobre mim / nós</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Serviços"><span>Serviços</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Portfólio / Galeria"><span>Portfólio / Galeria</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Depoimentos"><span>Depoimentos</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Preços / Pacotes"><span>Preços / Pacotes</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Blog"><span>Blog</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Loja"><span>Loja</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Perguntas frequentes"><span>Perguntas frequentes</span></label>
+          <label class="opt"><input type="checkbox" name="paginas" value="Contato"><span>Contato</span></label>
+        </div>
+        <div class="msg-erro">Marque pelo menos uma.</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Funcionalidades</span>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="funcoes" value="Botão de WhatsApp"><span>Botão de WhatsApp</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Formulário de contato"><span>Formulário de contato</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Agendamento online"><span>Agendamento online</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Pagamento online"><span>Pagamento online</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Feed do Instagram"><span>Feed do Instagram</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Mapa de localização"><span>Mapa</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Cadastro de e-mails"><span>Cadastro de e-mails</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Área de clientes"><span>Área de clientes</span></label>
+          <label class="opt"><input type="checkbox" name="funcoes" value="Versão em inglês"><span>Versão em inglês</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Os textos do site <span class="req">*</span></span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="textos" value="Tenho prontos" required><span>Tenho prontos</span></label>
+          <label class="opt"><input type="radio" name="textos" value="Tenho uma parte"><span>Tenho uma parte</span></label>
+          <label class="opt"><input type="radio" name="textos" value="Preciso de ajuda para escrever"><span>Preciso de ajuda</span></label>
+        </div>
+        <div class="msg-erro">Escolha uma opção.</div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="sobre">Sua história</label>
+        <span class="hint">Formação, trajetória, por que começou. Pode escrever do seu jeito, eu ajusto depois.</span>
+        <textarea id="sobre" name="sobre" style="min-height:150px"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="depoimentos">Depoimentos de clientes</label>
+        <span class="hint">Cole aqui com o nome (ou iniciais) de quem escreveu. Prints podem ir na próxima etapa.</span>
+        <textarea id="depoimentos" name="depoimentos"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="faq">Perguntas que os clientes sempre te fazem</label>
+        <textarea id="faq" name="faq"></textarea>
+      </div>
+    </section>
+
+    <!-- 6. FOTOS -->
+    <section class="step" data-titulo="Fotos e materiais">
+      <h2>Fotos e materiais</h2>
+      <p class="sub">Imagens reais fazem o site parecer seu. Envie o que tiver — dá para complementar depois.</p>
+
+      <div class="field">
+        <span class="lbl">Você tem fotos profissionais?</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="fotos_profissionais" value="Sim"><span>Sim</span></label>
+          <label class="opt"><input type="radio" name="fotos_profissionais" value="Algumas"><span>Algumas</span></label>
+          <label class="opt"><input type="radio" name="fotos_profissionais" value="Não, só do celular"><span>Não, só do celular</span></label>
+          <label class="opt"><input type="radio" name="fotos_profissionais" value="Pretendo fazer um ensaio"><span>Vou fazer um ensaio</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lbl">Suas fotos</label>
+        <span class="hint">Retratos seus ou da equipe.</span>
+        <label class="upload" data-campo="fotos_pessoais" data-max="15">
+          <input type="file" accept="image/*" multiple>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <strong>Toque para escolher ou arraste aqui</strong>
+          <small>Até 15 fotos · máx. 10 MB cada</small>
+        </label>
+        <div class="previews" data-previews="fotos_pessoais"></div>
+      </div>
+
+      <div class="field">
+        <label class="lbl">Trabalho, produtos ou espaço</label>
+        <span class="hint">Antes e depois, produtos, ambiente de atendimento, bastidores.</span>
+        <label class="upload" data-campo="fotos_trabalho" data-max="30">
+          <input type="file" accept="image/*" multiple>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-8 7"/></svg>
+          <strong>Toque para escolher ou arraste aqui</strong>
+          <small>Até 30 fotos · máx. 10 MB cada</small>
+        </label>
+        <div class="previews" data-previews="fotos_trabalho"></div>
+      </div>
+
+      <div class="field">
+        <label class="lbl">Outros materiais</label>
+        <span class="hint">Prints de depoimentos, certificados, cardápio, tabela de preços, apresentação em PDF.</span>
+        <label class="upload" data-campo="outros_materiais" data-max="15">
+          <input type="file" accept="image/*,.pdf" multiple>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>
+          <strong>Imagens ou PDF</strong>
+          <small>Até 15 arquivos</small>
+        </label>
+        <div class="previews" data-previews="outros_materiais"></div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="link_fotos">Muitas fotos? Cole um link</label>
+        <span class="hint">Google Drive, Dropbox ou WeTransfer.</span>
+        <input type="url" id="link_fotos" name="link_fotos" placeholder="https://">
+      </div>
+    </section>
+
+    <!-- 7. DETALHES FINAIS -->
+    <section class="step" data-titulo="Detalhes finais">
+      <h2>Detalhes finais</h2>
+      <p class="sub">Domínio, prazo e o que mais você quiser me contar.</p>
+
+      <div class="field">
+        <span class="lbl">Domínio (o endereço do site, tipo seunome.com.br)</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="dominio" value="Já tenho"><span>Já tenho</span></label>
+          <label class="opt"><input type="radio" name="dominio" value="Não tenho"><span>Não tenho</span></label>
+          <label class="opt"><input type="radio" name="dominio" value="Não sei o que é"><span>Não sei o que é</span></label>
+        </div>
+        <div class="reveal" data-when="dominio=Já tenho" hidden>
+          <input type="text" name="dominio_atual" placeholder="Qual é o domínio?">
+        </div>
+        <div class="reveal" data-when="dominio=Não tenho" hidden>
+          <input type="text" name="dominio_ideias" placeholder="Ideias de nome para o endereço">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Quem vai atualizar o site depois de pronto?</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="manutencao" value="Eu mesma(o)"><span>Eu mesma(o)</span></label>
+          <label class="opt"><input type="radio" name="manutencao" value="Quero que você cuide"><span>Quero que você cuide</span></label>
+          <label class="opt"><input type="radio" name="manutencao" value="Quase não vai mudar"><span>Quase não vai mudar</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Para quando você precisa do site?</span>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="prazo" value="O quanto antes"><span>O quanto antes</span></label>
+          <label class="opt"><input type="radio" name="prazo" value="Em até 1 mês"><span>Em até 1 mês</span></label>
+          <label class="opt"><input type="radio" name="prazo" value="Em 2 a 3 meses"><span>Em 2 a 3 meses</span></label>
+          <label class="opt"><input type="radio" name="prazo" value="Sem pressa"><span>Sem pressa</span></label>
+        </div>
+        <div class="reveal" data-when="prazo=O quanto antes|prazo=Em até 1 mês" hidden>
+          <input type="text" name="prazo_motivo" placeholder="Tem alguma data importante? (lançamento, evento…)">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="nao_quer">Tem algo que você NÃO quer no site?</label>
+        <textarea id="nao_quer" name="nao_quer"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="observacoes">Mais alguma coisa?</label>
+        <span class="hint">Qualquer ideia, dúvida ou detalhe que não coube nas perguntas.</span>
+        <textarea id="observacoes" name="observacoes"></textarea>
+      </div>
+
+      <div class="field" data-required-group>
+        <label class="check-simples"><input type="checkbox" name="autorizacao" value="Sim"><span>Autorizo o uso das fotos, textos e materiais enviados na criação do meu site. <span class="req" style="color:var(--accent)">*</span></span></label>
+        <div class="msg-erro">É preciso autorizar para enviar.</div>
+      </div>
+    </section>
+
+    <div class="nav" id="nav">
+      <button type="button" class="btn btn-sec" id="voltar">Voltar</button>
+      <button type="button" class="btn btn-pri" id="avancar">Continuar</button>
+    </div>
+    <div class="erro-envio" id="erro-envio"></div>
+    <p class="rascunho" id="rascunho"></p>
+  </form>
+
+  <div class="sucesso" id="sucesso">
+    <div class="selo"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2>Recebido!</h2>
+    <p>Obrigada por dedicar esse tempo. Vou ler tudo com calma e te chamo para conversarmos sobre os próximos passos.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO DO SUPABASE
+   Preencha as duas chaves abaixo (Project Settings → API).
+   Enquanto estiverem vazias, o formulário roda em modo de teste:
+   não envia nada, só mostra as respostas no console.
+   ============================================================ */
+const SUPABASE_URL      = "";   // ex.: "https://xxxx.supabase.co"
+const SUPABASE_ANON_KEY = "";   // chave "anon public"
+const TABELA  = "briefings";
+const BUCKET  = "briefings";
+const TAMANHO_MAX_MB = 10;
+const CHAVE_RASCUNHO = "briefing-site-rascunho";
+
+const form    = document.getElementById("form");
+const steps   = [...document.querySelectorAll(".step")];
+const btnVoltar  = document.getElementById("voltar");
+const btnAvancar = document.getElementById("avancar");
+let atual = 0;
+
+/* ---------- Navegação ---------- */
+function mostrar(i){
+  steps.forEach((s, n) => s.classList.toggle("ativo", n === i));
+  atual = i;
+  document.getElementById("etapa-nome").textContent = steps[i].dataset.titulo;
+  document.getElementById("etapa-num").textContent  = `Etapa ${i + 1} de ${steps.length}`;
+  document.getElementById("bar").style.width = `${((i + 1) / steps.length) * 100}%`;
+  btnVoltar.hidden = i === 0;
+  btnAvancar.textContent = i === steps.length - 1 ? "Enviar briefing" : "Continuar";
+  salvarRascunho();
+}
+
+btnVoltar.addEventListener("click", () => { mostrar(atual - 1); topo(); });
+btnAvancar.addEventListener("click", () => {
+  if (!validar(steps[atual])) return;
+  if (atual < steps.length - 1) { mostrar(atual + 1); topo(); }
+  else enviar();
+});
+function topo(){ window.scrollTo({ top: document.querySelector("header").offsetHeight, behavior: "smooth" }); }
+
+/* ---------- Validação ---------- */
+function validar(step){
+  let primeiro = null;
+  const marcar = (field, el) => { field?.classList.add("erro"); if (!primeiro) primeiro = el; };
+
+  step.querySelectorAll("[required]").forEach(el => {
+    if (el.closest(".reveal[hidden]")) return;
+    if (!el.checkValidity()) marcar(el.closest(".field"), el);
+  });
+  step.querySelectorAll("[data-required-group]").forEach(f => {
+    if (!f.querySelector("input:checked")) marcar(f, f.querySelector("input"));
+  });
+
+  if (primeiro) {
+    primeiro.closest(".field").scrollIntoView({ behavior: "smooth", block: "center" });
+    if (primeiro.type !== "radio" && primeiro.type !== "checkbox") primeiro.focus({ preventScroll: true });
+    return false;
+  }
+  return true;
+}
+form.addEventListener("input",  e => e.target.closest(".field")?.classList.remove("erro"));
+form.addEventListener("change", e => e.target.closest(".field")?.classList.remove("erro"));
+
+/* ---------- Campos condicionais ---------- */
+function atualizarCondicionais(){
+  document.querySelectorAll(".reveal[data-when]").forEach(r => {
+    const mostra = r.dataset.when.split("|").some(cond => {
+      const [nome, valor] = cond.split("=");
+      return [...form.querySelectorAll(`[name="${nome}"]`)].some(i => i.checked && i.value === valor);
+    });
+    r.hidden = !mostra;
+  });
+}
+form.addEventListener("change", atualizarCondicionais);
+
+/* ---------- Limite de escolhas (estilo) ---------- */
+document.querySelectorAll("[data-limite]").forEach(grupo => {
+  const lim = +grupo.dataset.limite;
+  grupo.addEventListener("change", e => {
+    if (grupo.querySelectorAll("input:checked").length > lim) e.target.checked = false;
+  });
+});
+
+/* ---------- Uploads ---------- */
+const arquivos = {};
+
+document.querySelectorAll(".upload").forEach(zona => {
+  const campo = zona.dataset.campo;
+  const max   = +zona.dataset.max || 10;
+  const input = zona.querySelector("input[type=file]");
+  const grade = document.querySelector(`[data-previews="${campo}"]`);
+  arquivos[campo] = [];
+
+  const aviso = document.createElement("div");
+  aviso.className = "aviso-upload";
+  grade.after(aviso);
+
+  const aceita = f => f.type.startsWith("image/") || (input.accept.includes(".pdf") && f.type === "application/pdf");
+
+  function adicionar(lista){
+    const recusados = [];
+    for (const f of lista) {
+      if (!aceita(f)) { recusados.push(`${f.name} (formato)`); continue; }
+      if (f.size > TAMANHO_MAX_MB * 1024 * 1024) { recusados.push(`${f.name} (maior que ${TAMANHO_MAX_MB} MB)`); continue; }
+      if (arquivos[campo].length >= max) { recusados.push(`${f.name} (limite de ${max})`); continue; }
+      arquivos[campo].push(f);
+    }
+    aviso.textContent = recusados.length ? `Não adicionados: ${recusados.join(", ")}` : "";
+    render();
+  }
+
+  function render(){
+    grade.innerHTML = "";
+    arquivos[campo].forEach((f, i) => {
+      const t = document.createElement("div");
+      t.className = "thumb";
+      if (f.type.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(f);
+        img.alt = f.name;
+        img.onload = () => URL.revokeObjectURL(img.src);
+        t.append(img);
+      } else {
+        t.innerHTML = `<div class="doc">📄 ${f.name}</div>`;
+      }
+      const x = document.createElement("button");
+      x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", `Remover ${f.name}`);
+      x.onclick = () => { arquivos[campo].splice(i, 1); aviso.textContent = ""; render(); };
+      t.append(x);
+      grade.append(t);
+    });
+  }
+
+  input.addEventListener("change", () => { adicionar(input.files); input.value = ""; });
+  ["dragenter", "dragover"].forEach(ev => zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.add("arrastando"); }));
+  ["dragleave", "drop"].forEach(ev => zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.remove("arrastando"); }));
+  zona.addEventListener("drop", e => adicionar(e.dataTransfer.files));
+});
+
+/* ---------- Coleta das respostas ---------- */
+function coletar(){
+  const dados = {};
+  for (const el of form.elements) {
+    if (!el.name || el.type === "file") continue;
+    if (el.type === "checkbox") {
+      const grupo = form.querySelectorAll(`[name="${el.name}"]`);
+      if (grupo.length === 1) { dados[el.name] = el.checked; continue; }
+      if (!dados[el.name]) dados[el.name] = [];
+      if (el.checked) dados[el.name].push(el.value);
+    } else if (el.type === "radio") {
+      if (el.checked) dados[el.name] = el.value;
+      else if (!(el.name in dados)) dados[el.name] = null;
+    } else if (!el.closest(".reveal[hidden]")) {
+      dados[el.name] = el.value.trim();
+    }
+  }
+  if (dados.sem_cores) { delete dados.cor_1; delete dados.cor_2; delete dados.cor_3; }
+  return dados;
+}
+
+/* ---------- Rascunho local ---------- */
+function salvarRascunho(){
+  try {
+    localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify({ etapa: atual, dados: coletar() }));
+    document.getElementById("rascunho").textContent = "Rascunho salvo neste aparelho (as fotos precisam ser escolhidas de novo se você fechar a página).";
+  } catch (_) {}
+}
+function restaurarRascunho(){
+  try {
+    const salvo = JSON.parse(localStorage.getItem(CHAVE_RASCUNHO) || "null");
+    if (!salvo) return 0;
+    for (const el of form.elements) {
+      if (!el.name || el.type === "file" || !(el.name in salvo.dados)) continue;
+      const v = salvo.dados[el.name];
+      if (el.type === "checkbox") el.checked = Array.isArray(v) ? v.includes(el.value) : !!v;
+      else if (el.type === "radio") el.checked = el.value === v;
+      else if (v != null) el.value = v;
+    }
+    return Math.min(salvo.etapa || 0, steps.length - 1);
+  } catch (_) { return 0; }
+}
+let timer;
+form.addEventListener("input",  () => { clearTimeout(timer); timer = setTimeout(salvarRascunho, 400); });
+form.addEventListener("change", () => { clearTimeout(timer); timer = setTimeout(salvarRascunho, 400); });
+
+/* ---------- Envio ---------- */
+const slug = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-|-$/g, "");
+
+async function enviar(){
+  const erroBox = document.getElementById("erro-envio");
+  erroBox.classList.remove("ativo");
+  btnAvancar.disabled = btnVoltar.disabled = true;
+
+  const dados = coletar();
+  const id = crypto.randomUUID();
+  const fotos = {};
+  const total = Object.values(arquivos).reduce((n, l) => n + l.length, 0);
+  let enviados = 0;
+
+  try {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      for (const [campo, lista] of Object.entries(arquivos)) {
+        fotos[campo] = [];
+        for (const [i, f] of lista.entries()) {
+          btnAvancar.textContent = `Enviando arquivos (${++enviados} de ${total})…`;
+          const caminho = `${id}/${campo}/${i + 1}-${slug(f.name)}`;
+          const { error } = await sb.storage.from(BUCKET).upload(caminho, f, { contentType: f.type });
+          if (error) throw error;
+          fotos[campo].push(caminho);
+        }
+      }
+
+      btnAvancar.textContent = "Salvando respostas…";
+      const { error } = await sb.from(TABELA).insert({
+        id,
+        nome: dados.nome,
+        negocio: dados.negocio,
+        email: dados.email,
+        whatsapp: dados.whatsapp,
+        respostas: dados,
+        fotos
+      });
+      if (error) throw error;
+    } else {
+      for (const [campo, lista] of Object.entries(arquivos)) fotos[campo] = lista.map(f => f.name);
+      console.log("MODO TESTE — nada foi enviado. Payload que iria para o Supabase:", { id, respostas: dados, fotos });
+    }
+
+    try { localStorage.removeItem(CHAVE_RASCUNHO); } catch (_) {}
+    form.hidden = true;
+    document.getElementById("progress").hidden = true;
+    document.getElementById("sucesso").classList.add("ativo");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (err) {
+    console.error(err);
+    erroBox.textContent = "Não consegui enviar agora. Verifique sua internet e tente de novo — suas respostas continuam aqui.";
+    erroBox.classList.add("ativo");
+    btnAvancar.disabled = btnVoltar.disabled = false;
+    btnAvancar.textContent = "Tentar de novo";
+  }
+}
+
+/* ---------- Início ---------- */
+const etapaInicial = restaurarRascunho();
+atualizarCondicionais();
+mostrar(etapaInicial);
+</script>
+</body>
+</html> 
